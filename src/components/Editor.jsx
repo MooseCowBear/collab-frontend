@@ -1,4 +1,4 @@
-import { defaultKeymap } from "@codemirror/commands";
+import { defaultKeymap, indentWithTab } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import { EditorView, keymap } from "@codemirror/view";
@@ -12,7 +12,7 @@ export const Editor = () => {
   useEffect(() => {
     const startState = EditorState.create({
       doc: "Hello world",
-      extensions: [basicSetup, keymap.of(defaultKeymap)],
+      extensions: [basicSetup, keymap.of([defaultKeymap, indentWithTab])],
     });
 
     const view = new EditorView({ state: startState, parent: editor.current });
