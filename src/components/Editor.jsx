@@ -4,6 +4,8 @@ import { basicSetup } from "codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { useRef, useEffect } from "react";
 
+import "../styles/editor.css";
+
 export const Editor = () => {
   const editor = useRef();
 
@@ -20,6 +22,5 @@ export const Editor = () => {
     };
   }, []);
 
-  return <div ref={editor}></div>;
+  return <div className="editor" ref={editor}></div>;
 };
-
