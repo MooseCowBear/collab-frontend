@@ -1,8 +1,9 @@
+import { useRef, useEffect } from "react";
 import { defaultKeymap, indentWithTab } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import { EditorView, keymap } from "@codemirror/view";
-import { useRef, useEffect } from "react";
+import { python } from "@codemirror/lang-python";
 
 import "../styles/editor.css";
 
@@ -12,7 +13,11 @@ export const Editor = () => {
   useEffect(() => {
     const startState = EditorState.create({
       doc: "Hello world",
-      extensions: [basicSetup, keymap.of([defaultKeymap, indentWithTab])],
+      extensions: [
+        basicSetup,
+        keymap.of([defaultKeymap, indentWithTab]),
+        python(),
+      ],
     });
 
     const view = new EditorView({ state: startState, parent: editor.current });
