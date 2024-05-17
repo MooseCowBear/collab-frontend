@@ -29,3 +29,5 @@ export const Editor = () => {
 
   return <div className="editor" ref={editor}></div>;
 };
+
+// simple, non-collab editor

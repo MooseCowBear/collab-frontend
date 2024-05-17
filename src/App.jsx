@@ -1,8 +1,14 @@
 import "./App.css";
-import { Editor } from "./components/Editor";
+import { CollabEditor } from "./components/CollabEditor";
+//import { Editor } from "./components/Editor";
 
 function App() {
-  return <Editor />;
+  return (
+    <>
+      <CollabEditor />
+      <CollabEditor />
+    </>
+  );
 }
 
 export default App;
