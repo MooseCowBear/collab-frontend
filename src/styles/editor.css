@@ -7,3 +7,8 @@
   width: 90vw;
   height: 200px;
 }
+
+#codeEditor {
+  width: 90vw;
+  height: 90vh;
+}

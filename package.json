@@ -15,9 +15,13 @@
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/state": "^6.4.1",
     "@codemirror/view": "^6.26.3",
+    "@uiw/codemirror-extensions-basic-setup": "^4.22.1",
+    "@uiw/codemirror-extensions-langs": "^4.22.1",
+    "@uiw/react-codemirror": "^4.22.1",
     "codemirror": "^6.0.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
