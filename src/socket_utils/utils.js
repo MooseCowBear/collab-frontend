@@ -7,47 +7,83 @@ import {
   getSyncedVersion,
 } from "@codemirror/collab";
 
-async function pushUpdates(socket, version, fullUpdates) {
+async function pushUpdates(socket, docName, version, fullUpdates) {
   const updates = fullUpdates.map((u) => ({
     clientID: u.clientID,
     changes: u.changes.toJSON(),
     effects: u.effects,
   }));
 
+  console.log("pushUpdates called with", updates);
+
   return new Promise(function (resolve) {
-    socket.socket.emit("pushUpdates", version, JSON.stringify(updates));
+    socket.socket.emit(
+      "pushUpdates",
+      docName,
+      version,
+      JSON.stringify(updates)
+    );
+
     socket.socket.once("pushUpdateResponse", function (status) {
       resolve(status);
     });
   });
 }
 
-async function pullUpdates(socket, version) {
+async function pullUpdates(socket, docName, version) {
+  console.log("pullUpdates called");
   return new Promise(function (resolve) {
-    socket.socket.emit("pullUpdates", version);
+    socket.socket.emit("pullUpdates", docName, version);
     socket.socket.once("pullUpdateResponse", function (updates) {
       resolve(JSON.parse(updates));
     });
   }).then((updates) =>
-    updates.map((u) => ({
-      changes: ChangeSet.fromJSON(u.changes),
-      clientID: u.clientID,
-    }))
+    updates.map((u) => {
+      if (u.effects[0]) {
+        const effects = [];
+
+        // don't worry about cursor yet
+        u.effects.forEach((effect) => {
+          if (effect.value?.id) {
+            // const cursor = {
+            //   id: effect.value.id,
+            //   from: effect.value.from,
+            //   to: effect.value.to,
+            // };
+            // effects.push(addCursor.of(cursor));
+          }
+        });
+
+        return {
+          changes: ChangeSet.fromJSON(u.changes),
+          clientID: u.clientID,
+          effects,
+        };
+      }
+
+      return {
+        changes: ChangeSet.fromJSON(u.changes),
+        clientID: u.clientID,
+      };
+    })
   );
 }
 
-export async function getDocument(socket) {
-  console.log("calling get document");
+export function getDocument(socket, docName) {
+  console.log("getDocument called");
   return new Promise(function (resolve) {
-    socket.socket.emit("getDocument");
+    socket.socket.emit("getDocument", docName);
+
     socket.socket.once("getDocumentResponse", function (version, doc) {
-      console.log("from server on client side", version, doc); // is getting it
-      resolve({ version, doc: Text.of(doc.split("\n")) });
+      resolve({
+        version,
+        doc: Text.of(doc.split("\n")),
+      });
     });
   });
 }
 
-export const peerExtension = (socket, startVersion) => {
+export const peerExtension = (socket, docName, startVersion, id) => {
   const plugin = ViewPlugin.fromClass(
     class {
       constructor(view) {
@@ -58,7 +94,7 @@ export const peerExtension = (socket, startVersion) => {
       }
 
       update(update) {
-        if (update.docChanged || update.transactions.length) {
+        if (update.docChanged || update.transactions[0]?.effects[0]) {
           this.push();
         }
       }
@@ -68,8 +104,7 @@ export const peerExtension = (socket, startVersion) => {
         if (this.pushing || !updates.length) return;
         this.pushing = true;
         const version = getSyncedVersion(this.view.state);
-        const success = await pushUpdates(socket, version, updates);
-        console.log("success", success); // after first change... goes insane
+        await pushUpdates(socket, docName, version, updates);
         this.pushing = false;
         if (sendableUpdates(this.view.state).length) {
           console.log("resending");
@@ -80,8 +115,9 @@ export const peerExtension = (socket, startVersion) => {
       async pull() {
         while (!this.done) {
           const version = getSyncedVersion(this.view.state);
-          const updates = await pullUpdates(socket, version);
-          this.view.dispatch(receiveUpdates(this.view.state, updates));
+          const updates = await pullUpdates(socket, docName, version);
+          const newUpdates = receiveUpdates(this.view.state, updates);
+          this.view.dispatch(newUpdates);
         }
       }
 
@@ -91,5 +127,14 @@ export const peerExtension = (socket, startVersion) => {
     }
   );
 
-  return [collab({ startVersion }), plugin];
+  return [
+    collab({
+      startVersion,
+      clientID: id,
+      sharedEffects: (transaction) => {
+        return transaction.effects;
+      },
+    }),
+    plugin,
+  ];
 };
