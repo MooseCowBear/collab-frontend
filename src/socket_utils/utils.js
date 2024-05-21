@@ -7,14 +7,14 @@ import {
   getSyncedVersion,
 } from "@codemirror/collab";
 
+import { addCursor } from "./cursor";
+
 async function pushUpdates(socket, docName, version, fullUpdates) {
   const updates = fullUpdates.map((u) => ({
     clientID: u.clientID,
     changes: u.changes.toJSON(),
     effects: u.effects,
   }));
-
-  console.log("pushUpdates called with", updates);
 
   return new Promise(function (resolve) {
     socket.socket.emit(
@@ -44,13 +44,15 @@ async function pullUpdates(socket, docName, version) {
 
         // don't worry about cursor yet
         u.effects.forEach((effect) => {
+          console.log("update had effects:", u.effects); // currently no ids associated with effect values
           if (effect.value?.id) {
-            // const cursor = {
-            //   id: effect.value.id,
-            //   from: effect.value.from,
-            //   to: effect.value.to,
-            // };
-            // effects.push(addCursor.of(cursor));
+            const cursor = {
+              id: effect.value.id,
+              from: effect.value.from,
+              to: effect.value.to,
+            };
+            effects.push(addCursor.of(cursor));
+            console.log("ids of effects values", effect.value?.id);
           }
         });
 
@@ -70,7 +72,6 @@ async function pullUpdates(socket, docName, version) {
 }
 
 export function getDocument(socket, docName) {
-  console.log("getDocument called");
   return new Promise(function (resolve) {
     socket.socket.emit("getDocument", docName);
 
@@ -107,7 +108,6 @@ export const peerExtension = (socket, docName, startVersion, id) => {
         await pushUpdates(socket, docName, version, updates);
         this.pushing = false;
         if (sendableUpdates(this.view.state).length) {
-          console.log("resending");
           setTimeout(() => this.push(), 100);
         }
       }
@@ -131,8 +131,12 @@ export const peerExtension = (socket, docName, startVersion, id) => {
     collab({
       startVersion,
       clientID: id,
-      sharedEffects: (transaction) => {
-        return transaction.effects;
+      sharedEffects: (tr) => {
+        const effects = tr.effects.filter((e) => {
+          return e.is(addCursor);
+        });
+
+        return effects;
       },
     }),
     plugin,
