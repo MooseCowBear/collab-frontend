@@ -16,15 +16,12 @@ async function pushUpdates(socket, docName, version, fullUpdates) {
     effects: u.effects,
   }));
 
+  console.log("pushUpdates called", updates);
+  if (!updates) return;
   return new Promise(function (resolve) {
-    socket.socket.emit(
-      "pushUpdates",
-      docName,
-      version,
-      JSON.stringify(updates)
-    );
+    socket.emit("pushUpdates", docName, version, JSON.stringify(updates));
 
-    socket.socket.once("pushUpdateResponse", function (status) {
+    socket.once("pushUpdateResponse", function (status) {
       resolve(status);
     });
   });
@@ -33,8 +30,8 @@ async function pushUpdates(socket, docName, version, fullUpdates) {
 async function pullUpdates(socket, docName, version) {
   console.log("pullUpdates called");
   return new Promise(function (resolve) {
-    socket.socket.emit("pullUpdates", docName, version);
-    socket.socket.once("pullUpdateResponse", function (updates) {
+    socket.emit("pullUpdates", docName, version);
+    socket.once("pullUpdateResponse", function (updates) {
       resolve(JSON.parse(updates));
     });
   }).then((updates) =>
@@ -73,9 +70,9 @@ async function pullUpdates(socket, docName, version) {
 
 export function getDocument(socket, docName) {
   return new Promise(function (resolve) {
-    socket.socket.emit("getDocument", docName);
+    socket.emit("getDocument", docName);
 
-    socket.socket.once("getDocumentResponse", function (version, doc) {
+    socket.once("getDocumentResponse", function (version, doc) {
       resolve({
         version,
         doc: Text.of(doc.split("\n")),
@@ -95,6 +92,7 @@ export const peerExtension = (socket, docName, startVersion, id) => {
       }
 
       update(update) {
+        console.log("UPDATE WAS", update);
         if (update.docChanged || update.transactions[0]?.effects[0]) {
           this.push();
         }

@@ -1,12 +1,12 @@
+import PropTypes from "prop-types";
+import { useEffect, useState, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { basicSetup } from "@uiw/codemirror-extensions-basic-setup";
 import { indentUnit } from "@codemirror/language";
-import { useEffect, useState, useRef } from "react";
 import { peerExtension, getDocument } from "../socket_utils/utils";
 import "../styles/editor.css";
 
-//import { cursorTooltip } from "../non_collab_utils/tooltip"; // only shows one cursor, which makes sense.
 import { cursorExtension } from "../socket_utils/cursor";
 
 const randomName = () => {
@@ -14,25 +14,25 @@ const randomName = () => {
   return `user_${num}`;
 };
 
-export const SocketEditor = (socket) => {
+export const SocketEditor = ({ socket, documentName }) => {
   const [doc, setDoc] = useState(null);
   const [version, setVersion] = useState(null);
   const [connected, setConnected] = useState(false);
   const nameRef = useRef(randomName());
 
-  const docName = "default";
-
   useEffect(() => {
     async function setupEditor() {
-      let { version, doc } = await getDocument(socket, docName);
+      let { version, doc } = await getDocument(socket, documentName);
+      console.log(version, doc);
       setVersion(version);
       setDoc(doc.toString());
       setConnected(true);
 
-      socket.socket.on("connect", () => {
+      socket.on("connect", () => {
         setConnected(true);
       });
-      socket.socket.on("disconnect", () => {
+
+      socket.on("disconnect", () => {
         setConnected(false);
       });
     }
@@ -40,20 +40,24 @@ export const SocketEditor = (socket) => {
     setupEditor();
     return () => {
       console.log("disconnecting component");
-      socket.socket.off("connect");
-      socket.socket.off("disconnect");
-      socket.socket.off("display");
-      socket.socket.off("pullUpdateResponse");
-      socket.socket.off("pushUpdateResponse");
-      socket.socket.off("getDocumentResponse");
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("save");
+      socket.off("pullUpdateResponse");
+      socket.off("pushUpdateResponse");
+      socket.off("getDocumentResponse");
     };
-  }, [socket, docName]);
+  }, [socket, documentName]);
+
+  console.log(documentName);
 
   if (!doc || version === null) return <p>loading...</p>;
 
   return (
     <>
-      <h1>{`${docName}: version ${version}`}</h1>
+      <h1>{`${documentName}: version ${version}, ${
+        connected ? "connected" : "disconnected"
+      }`}</h1>
       <CodeMirror
         className=""
         height="100%"
@@ -63,7 +67,7 @@ export const SocketEditor = (socket) => {
           indentUnit.of("\t"),
           basicSetup(),
           langs.python(),
-          peerExtension(socket, docName, version),
+          peerExtension(socket, documentName, version, nameRef.current),
           cursorExtension(nameRef.current),
         ]}
         value={doc}
@@ -72,6 +76,10 @@ export const SocketEditor = (socket) => {
   );
 };
 
-// version is never reset in state so you can't see it unless refresh
+SocketEditor.propTypes = {
+  socket: PropTypes.object,
+  documentName: PropTypes.string,
+};
 
-// note: auto complete does not work. throws Unhandled Promise Rejection: TypeError: JSON.stringify cannot serialize cyclic structures.
+// problem: when want to grab a new document. the editor stays the same, just emits a change to doc
+// but really would want to remove old editor and replace with new one in that case..
