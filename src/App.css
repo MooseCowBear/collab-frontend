@@ -39,3 +39,8 @@
 .read-the-docs {
   color: #888;
 }
+
+
+#codeEditor .cm-editor .cm-cursor.cm-cursor-primary {
+  border: none !important; /* really not sure why i couldn't manage to do this in the theme*/
+}

@@ -8,6 +8,7 @@ import { peerExtension, getDocument } from "../socket_utils/utils";
 import "../styles/editor.css";
 
 import { cursorExtension } from "../socket_utils/cursor";
+import { withYPadding } from "../socket_utils/theme";
 
 const randomName = () => {
   const num = Math.floor(Math.random() * 1000);
@@ -66,6 +67,7 @@ export const SocketEditor = ({ socket, documentName }) => {
         extensions={[
           indentUnit.of("\t"),
           basicSetup(),
+          withYPadding,
           langs.python(),
           peerExtension(socket, documentName, version, nameRef.current),
           cursorExtension(nameRef.current),
@@ -83,3 +85,7 @@ SocketEditor.propTypes = {
 
 // problem: when want to grab a new document. the editor stays the same, just emits a change to doc
 // but really would want to remove old editor and replace with new one in that case..
+
+// priority of extensions: if appears before in array, higher precedence
+
+// cm-theme-light is being applied not sure where its coming from...
